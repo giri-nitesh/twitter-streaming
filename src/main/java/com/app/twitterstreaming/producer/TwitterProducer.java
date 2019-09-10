@@ -1,7 +1,10 @@
 package com.app.twitterstreaming.producer;
 
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -9,6 +12,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.app.twitterstreaming.configuration.KafkaConfiguration;
 import com.app.twitterstreaming.model.Tweet;
@@ -20,16 +25,38 @@ import com.twitter.hbc.core.Client;
  * @author Nitesh
 */
 public class TwitterProducer implements KafkaProducerService{
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(TwitterProducer.class);
+	
     private Client client;
     private BlockingQueue<String> queue;
     private Gson gson;
     private Callback callback;
     
-    /** Creates an Twitter Producer with the given twitter client.
-	 * @param client Twitter Client to get the tweets.
+    /** Creates a Twitter Producer with the given term to be tracked.
+	 * @param term Term(or hashtag) to be tracked.
 	*/
-    public TwitterProducer(Client client) {
-    	this.client = client;
+    public TwitterProducer(String term) {
+    	LOGGER.info("Twitter Client created for Hashtag: #",term);
+    	
+    	gson = new Gson();
+        callback = new BasicCallback();
+        queue = new LinkedBlockingQueue<>(10000);
+        TwitterClient twitterClient= new TwitterClient(term, queue);
+        this.client = twitterClient.getClient();
+        LOGGER.info("Client created is:" +client);
+    }
+    
+    /** Creates a Twitter Producer with the list of terms to be tracked.
+	 * @param terms Terms(or hashtags) to be tracked.
+	*/
+    public TwitterProducer(List<String> terms) {
+    	LOGGER.info("Twitter Client created for Hashtags:",terms.toString());
+    	
+    	gson = new Gson();
+        callback = new BasicCallback();
+        queue = new LinkedBlockingQueue<>(10000);
+        this.client = new TwitterClient(terms, queue).getClient();
     }
 
     private Producer<Long, String> getProducer() {
@@ -49,20 +76,27 @@ public class TwitterProducer implements KafkaProducerService{
 	*/
     @Override
     public void activateTweetListening() {
-        client.connect();
+        
+    	LOGGER.info("Creating connection to Twitter..");
+    	client.connect();
+    	LOGGER.info("Connected to Twitter stream");
+        
         try (Producer<Long, String> producer = getProducer()) {
             while (true) {
             	// Process the messages in the queue 
                 Tweet tweet = gson.fromJson(queue.take(), Tweet.class);
-                System.out.printf("Fetched tweet id %d\n", tweet.getId());
+                LOGGER.info("Fetched tweet id \n", tweet.getId());
                 long key = tweet.getId();
                 String msg = tweet.toString();
                 ProducerRecord<Long, String> record = new ProducerRecord<>(KafkaConfiguration.TOPIC, key, msg);
                 producer.send(record, callback);
             }
-        } catch (InterruptedException e) {
+        } 
+        catch (InterruptedException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } finally {
+        	LOGGER.debug("Twitter Client stopped due to some exception.");
             client.stop();
         }
     }

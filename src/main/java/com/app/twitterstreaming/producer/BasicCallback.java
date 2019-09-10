@@ -2,19 +2,23 @@ package com.app.twitterstreaming.producer;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BasicCallback implements Callback {
-    @Override
+    
+	private static final Logger LOGGER = LoggerFactory.getLogger(BasicCallback.class);
+	@Override
     /**
      * Callback method to check if message sent by producer was 
      * put into kafka queue successfully.
      */
     public void onCompletion(RecordMetadata metadata, Exception exception) {
         if (exception == null) {
-            System.out.printf("Message with offset %d acknowledged by partition %d\n",
+            LOGGER.info("Message with offset %s acknowledged by partition %s\n",
                     metadata.offset(), metadata.partition());
         } else {
-            System.out.println(exception.getMessage());
+            LOGGER.error(exception.getMessage());
         }
     }
 }
