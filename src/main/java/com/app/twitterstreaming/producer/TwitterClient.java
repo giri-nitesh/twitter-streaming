@@ -16,6 +16,7 @@ import com.twitter.hbc.core.Constants;
 import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
+import com.twitter.hbc.httpclient.auth.BasicAuth;
 import com.twitter.hbc.httpclient.auth.OAuth1;
 
 /** Represents a TwitterClient
@@ -57,13 +58,13 @@ public class TwitterClient {
 	 */
 	public Client getClient(){
 		// Configure Authentication
-		// Authentication auth = new BasicAuth(username, password);
+		//Authentication auth = new BasicAuth("k_g_nitesh", "");
 		authentication = new OAuth1(
 				TwitterConfiguration.CONSUMER_KEY,
 				TwitterConfiguration.CONSUMER_SECRET,
 				TwitterConfiguration.ACCESS_TOKEN,
 				TwitterConfiguration.TOKEN_SECRET);
-
+		
 		// Define our endpoint: By default, delimited=length is set (we need this for our processor)
 		// and stall warnings are on.
 
