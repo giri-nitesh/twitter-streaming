@@ -85,9 +85,10 @@ public class TwitterProducer implements KafkaProducerService{
             while (true) {
             	// Process the messages in the queue 
                 Tweet tweet = gson.fromJson(queue.take(), Tweet.class);
-                LOGGER.info("Fetched tweet id \n", tweet.getId());
+                LOGGER.info("Fetched tweet id ", tweet.getId());
                 long key = tweet.getId();
                 String msg = tweet.toString();
+                //LOGGER.info("Putting msg into queue "+ msg);
                 ProducerRecord<Long, String> record = new ProducerRecord<>(KafkaConfiguration.TOPIC, key, msg);
                 producer.send(record, callback);
             }
@@ -96,7 +97,7 @@ public class TwitterProducer implements KafkaProducerService{
             e.printStackTrace();
             LOGGER.error(e.getMessage());
         } finally {
-        	LOGGER.debug("Twitter Client stopped due to some exception.");
+        	LOGGER.error("Twitter Client stopped due to some exception.");
             client.stop();
         }
     }

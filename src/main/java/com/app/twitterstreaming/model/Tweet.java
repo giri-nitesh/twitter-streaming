@@ -1,8 +1,17 @@
 package com.app.twitterstreaming.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.app.twitterstreaming.utils.Utility;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.gson.annotations.SerializedName;
 
 public class Tweet {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(Tweet.class);	
     private long id;
     private String text;
     private String lang;
@@ -70,16 +79,21 @@ public class Tweet {
     public void setFavoriteCount(int favoriteCount) {
         this.favoriteCount = favoriteCount;
     }
-
+    
+    /*Following toString message puts the tweets into kafka queue
+     * before converting to json object, so that it can be 
+     * consumed to tweet object easily.
+     * */
     @Override
     public String toString() {
-        return "Tweet{" +
-                "id=" + id +
-                ", text='" + text + '\'' +
-                ", lang='" + lang + '\'' +
-                ", user=" + user +
-                ", retweetCount=" + retweetCount +
-                ", favoriteCount=" + favoriteCount +
-                '}';
+    	ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+    	String json = "";
+		try {
+			json = ow.writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+			LOGGER.error(e.toString());
+		}
+    	return json;
+    	
     }
 }
