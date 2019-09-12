@@ -2,6 +2,10 @@ package com.app.twitterstreaming.model;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * @author Nitesh
+ *	Represents a Tweeter User
+ */
 public class User {
     private long id;
     private String name;

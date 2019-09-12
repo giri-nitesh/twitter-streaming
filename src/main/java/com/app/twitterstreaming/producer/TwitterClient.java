@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.app.twitterstreaming.configuration.TwitterConfiguration;
+import com.app.twitterstreaming.constant.AppConstants.QueryConstants;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
@@ -56,7 +57,7 @@ public class TwitterClient {
 	 * @return A Twitter Client with the given list of strings(or Hashtags) or 
 	 * string(or hashtag).
 	 */
-	public Client getClient(){
+	public Client getClient(QueryConstants queryType){
 		// Configure Authentication
 		//Authentication auth = new BasicAuth("k_g_nitesh", "");
 		authentication = new OAuth1(
@@ -70,10 +71,26 @@ public class TwitterClient {
 
 		endpoint = new StatusesFilterEndpoint();
 
-		// Track the items with hashtag or some terms
+		// Track the tweets with hashtag or some terms
 		// endpoint.trackTerms(Lists.newArrayList("twitterapi", "#yolo"));
-
-		endpoint.trackTerms(list);
+		if(queryType == QueryConstants.HASHTAG) {
+			endpoint.trackTerms(list);
+			LOGGER.info("Hashtag registered with listener service");
+			}
+		
+		// Track the tweets with set of account ids
+		// Convert the list of string params to list of ids 
+		if(queryType == QueryConstants.ACCOUNT) {
+			List<Long> accounts = new ArrayList<Long>();
+			for(String account : list) {
+				Long item = Long.getLong(account);
+				accounts.add(item);
+			}
+			endpoint.followings(accounts);
+			LOGGER.info("User ids registered with listener service");
+		}
+		
+		
 		System.out.println("Endpoint: "+ getEndpoint());
 		System.out.println("Authentication: "+ getAuthentication());
 		Client client = new ClientBuilder()

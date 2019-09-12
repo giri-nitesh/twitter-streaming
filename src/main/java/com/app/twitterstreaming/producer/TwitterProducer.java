@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.app.twitterstreaming.configuration.KafkaConfiguration;
+import com.app.twitterstreaming.constant.AppConstants.QueryConstants;
 import com.app.twitterstreaming.model.Tweet;
 import com.app.twitterstreaming.service.KafkaProducerService;
 import com.google.gson.Gson;
@@ -36,27 +37,27 @@ public class TwitterProducer implements KafkaProducerService{
     /** Creates a Twitter Producer with the given term to be tracked.
 	 * @param term Term(or hashtag) to be tracked.
 	*/
-    public TwitterProducer(String term) {
+    public TwitterProducer(String term, QueryConstants queryType) {
     	LOGGER.info("Twitter Client created for Hashtag: #",term);
     	
     	gson = new Gson();
         callback = new BasicCallback();
         queue = new LinkedBlockingQueue<>(10000);
         TwitterClient twitterClient= new TwitterClient(term, queue);
-        this.client = twitterClient.getClient();
+        this.client = twitterClient.getClient(queryType);
         LOGGER.info("Client created is:" +client);
     }
     
     /** Creates a Twitter Producer with the list of terms to be tracked.
 	 * @param terms Terms(or hashtags) to be tracked.
 	*/
-    public TwitterProducer(List<String> terms) {
+    public TwitterProducer(List<String> terms, QueryConstants queryType) {
     	LOGGER.info("Twitter Client created for Hashtags:",terms.toString());
     	
     	gson = new Gson();
         callback = new BasicCallback();
         queue = new LinkedBlockingQueue<>(10000);
-        this.client = new TwitterClient(terms, queue).getClient();
+        this.client = new TwitterClient(terms, queue).getClient(queryType);
     }
 
     private Producer<Long, String> getProducer() {
