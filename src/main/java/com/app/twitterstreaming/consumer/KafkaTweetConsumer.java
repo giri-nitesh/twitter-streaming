@@ -3,7 +3,6 @@ package com.app.twitterstreaming.consumer;
 import java.util.Collections;
 import java.util.Properties;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.LongDeserializer;
@@ -19,10 +18,10 @@ import com.app.twitterstreaming.configuration.KafkaConfiguration;
  */
 public class KafkaTweetConsumer {
 	
-    private final static String TOPIC = KafkaConfiguration.TOPIC;
+    private String topic = null;
     
-    public KafkaTweetConsumer() {
-		
+    public KafkaTweetConsumer(String topic) {
+    	this.setTopic(topic);
 	}
 	
     public KafkaConsumer<String, String> createConsumer() {
@@ -44,10 +43,18 @@ public class KafkaTweetConsumer {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
 
         // Subscribe to the topic.
-        consumer.subscribe(Collections.singletonList(TOPIC));
+        consumer.subscribe(Collections.singletonList(this.getTopic()));
 
         return consumer;
 
     }
+
+	public String getTopic() {
+		return topic;
+	}
+
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
 
 }

@@ -1,16 +1,19 @@
 package com.app.twitterstreaming.controller;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.app.twitterstreaming.constant.AppConstants.QueryConstants;
@@ -20,56 +23,57 @@ import com.app.twitterstreaming.producer.TwitterProducer;
 import com.app.twitterstreaming.utils.ZooKeeperUtility;
 
 @RestController
-@RequestMapping("/tweet")
+@RequestMapping("/app")
 public class TwitterController {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(TwitterController.class);
 
-	@RequestMapping(value="/create-topic/{topic}" , method = RequestMethod.POST)
-	public ResponseEntity<String> getKafkaTopic(@RequestParam("topic") String topic) 
-			throws FileNotFoundException, IOException {
+
+	@PostMapping(value ="/create-topic/")
+	@ResponseBody
+	public ResponseEntity<String> getKafkaTopic(@RequestParam final String topic) 
+			throws IOException {
 		ZooKeeperUtility.createTopic(topic);
-		return new ResponseEntity<String>(HttpStatus.OK);
+		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
-
-	@RequestMapping(value="/{id}" , method = RequestMethod.GET)
-	public ResponseEntity<List<Tweet>> getTweetsForTwitterAccount(@RequestParam("id") Long id) {
-		Thread t1 = new Thread() {
-			public  synchronized void  run(){
-				try{
-					List<String> accounts = new ArrayList<>();
-					accounts.add(id.toString());
-					TwitterProducer producer = new TwitterProducer(accounts, QueryConstants.ACCOUNT);
-					producer.activateTweetListening();
-				}catch(Exception e){
-					System.out.println("Exception"+e);
-				}
-			}
-		};
-		t1.start();
-		TwitterConsumer consumer = new TwitterConsumer();
-
-		List<Tweet> list = consumer.getTweets(0, 5, id.toString());	
+	
+	@GetMapping(path="/get-topics")
+	public ResponseEntity<List<String>> getAllTopics() 
+			throws IOException {
+		List<String> list = ZooKeeperUtility.getAllTopics();
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Responded", "TwitterController");
-		return ResponseEntity.accepted().headers(headers).body(list);	
+		return ResponseEntity.accepted().headers(headers).body(list);
 	}
 
-	@RequestMapping(value="/{hashtag}" , method = RequestMethod.GET)
-	public ResponseEntity<List<Tweet>> getTweetsForHashtag(@RequestParam("hashtag") String hashtag) {
+	@GetMapping(value="/tweets/")
+	public ResponseEntity<List<Tweet>> getTweetsForHashtag(@RequestParam final String source){
+		
+		QueryConstants queryType = QueryConstants.HASHTAG;
+		if(source.contains("@")) {
+			queryType = QueryConstants.ACCOUNT;
+		}
+		String hashtag = ZooKeeperUtility.getValidString(source).trim();
+		List<String> hashtags = new ArrayList<>();
+		hashtags.add(hashtag);
+		TwitterProducer producer = new TwitterProducer(hashtags, queryType);
+		
 		Thread t1 = new Thread() {
-			public  synchronized void  run(){
+			@Override
+			public synchronized void run(){
 				try{
-					List<String> hashtags = new ArrayList<>();
-					hashtags.add(hashtag);
-					TwitterProducer producer = new TwitterProducer(hashtags, QueryConstants.ACCOUNT);
 					producer.activateTweetListening();
 				}catch(Exception e){
-					System.out.println("Exception"+e);
+					LOGGER.error(e.getMessage());
 				}
 			}
 		};
+		t1.setPriority(1);
 		t1.start();
 		TwitterConsumer consumer = new TwitterConsumer();
-		List<Tweet> list = consumer.getTweets(0, 5, hashtag);	
+		//Will fetch first 50 tweets, can be modified to 
+		//suppport pagination request
+		List<Tweet> list = consumer.getTweets(0, 50, hashtag);	
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Responded", "TwitterController");
 		return ResponseEntity.accepted().headers(headers).body(list);	

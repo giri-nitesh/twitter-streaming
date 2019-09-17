@@ -1,23 +1,21 @@
 package com.app.twitterstreaming.producer;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.app.twitterstreaming.configuration.TwitterConfiguration;
 import com.app.twitterstreaming.constant.AppConstants.QueryConstants;
+import com.app.twitterstreaming.utils.Utility;
 import com.twitter.hbc.ClientBuilder;
-import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
 import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
+import com.twitter.hbc.httpclient.BasicClient;
 import com.twitter.hbc.httpclient.auth.Authentication;
-import com.twitter.hbc.httpclient.auth.BasicAuth;
 import com.twitter.hbc.httpclient.auth.OAuth1;
 
 /** Represents a TwitterClient
@@ -46,10 +44,8 @@ public class TwitterClient {
 	 * should be passed as parameter.
 	 */
 	public TwitterClient(String term, BlockingQueue<String> queue) {
-		//new TwitterClient(Collections.singletonList(term), queue); 
-		List<String> list = new ArrayList<String>();
+		list = new ArrayList<>();
 		list.add(term);
-		this.list = list;
 		this.queue = queue;
 	}
 
@@ -57,9 +53,8 @@ public class TwitterClient {
 	 * @return A Twitter Client with the given list of strings(or Hashtags) or 
 	 * string(or hashtag).
 	 */
-	public Client getClient(QueryConstants queryType){
+	public BasicClient getClient(QueryConstants queryType){
 		// Configure Authentication
-		//Authentication auth = new BasicAuth("k_g_nitesh", "");
 		authentication = new OAuth1(
 				TwitterConfiguration.CONSUMER_KEY,
 				TwitterConfiguration.CONSUMER_SECRET,
@@ -72,7 +67,7 @@ public class TwitterClient {
 		endpoint = new StatusesFilterEndpoint();
 
 		// Track the tweets with hashtag or some terms
-		// endpoint.trackTerms(Lists.newArrayList("twitterapi", "#yolo"));
+
 		if(queryType == QueryConstants.HASHTAG) {
 			endpoint.trackTerms(list);
 			LOGGER.info("Hashtag registered with listener service");
@@ -81,9 +76,9 @@ public class TwitterClient {
 		// Track the tweets with set of account ids
 		// Convert the list of string params to list of ids 
 		if(queryType == QueryConstants.ACCOUNT) {
-			List<Long> accounts = new ArrayList<Long>();
+			List<Long> accounts = new ArrayList<>();
 			for(String account : list) {
-				Long item = Long.getLong(account);
+				Long item = new Long(Utility.TWEET_ID.get(account));
 				accounts.add(item);
 			}
 			endpoint.followings(accounts);
@@ -91,16 +86,16 @@ public class TwitterClient {
 		}
 		
 		
-		System.out.println("Endpoint: "+ getEndpoint());
-		System.out.println("Authentication: "+ getAuthentication());
-		Client client = new ClientBuilder()
+		LOGGER.info("Endpoint: {} and Authenticaion: {}", getEndpoint(), getAuthentication());
+		BasicClient client = new ClientBuilder()
+				.name("TwitterClient")
 				.hosts(Constants.STREAM_HOST)
 				.authentication(authentication)
 				.endpoint(endpoint)
 				.processor(new StringDelimitedProcessor(queue))
 				.build();
-		LOGGER.info("Twitter client created successfully with following configuration:", 
-				this.toString());
+		LOGGER.info("Twitter client created successfully with following configuration: {}", 
+				this);
 		return client;
 	}
 
@@ -109,7 +104,7 @@ public class TwitterClient {
 	}
 
 	public BlockingQueue<String> getQueue() {
-		return queue;
+		return this.queue;
 	}
 
 	public Authentication getAuthentication() {
